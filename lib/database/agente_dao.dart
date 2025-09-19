@@ -20,7 +20,9 @@ class AgenteDao {
       )
     ''');
     // Índice para acelerar buscas por CNPJ
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_agentes_cnpj ON agentes(cnpj)');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_agentes_cnpj ON agentes(cnpj)',
+    );
   }
 
   // Insere ou atualiza um agente no banco
@@ -51,16 +53,13 @@ class AgenteDao {
   Future<AgenteModel?> getAgenteByCnpj(String cnpj) async {
     try {
       final normalized = cnpj.replaceAll(RegExp(r'\D'), '');
-      print('Buscando agente com CNPJ: $normalized');
       final result = await db.query(
         'agentes',
         where: 'cnpj = ?',
         whereArgs: [normalized],
       );
-      print('Resultado da busca: ${result.length} registros encontrados');
       return result.isNotEmpty ? AgenteModel.fromMap(result.first) : null;
     } catch (e) {
-      print('Erro ao buscar agente: $e');
       rethrow;
     }
   }
