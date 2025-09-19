@@ -1,32 +1,32 @@
 class AgenteModel {
   final int codigo; // Código de instalação (principal)
-  final String cnpj; // CNPJ da empresa
+  final String cnpj; // CNPJ da empresa (normalizado, somente dígitos)
   final String razaoSocial; // Nome oficial da empresa
-  final String cep; // CEP
-  final String municipio; // Município
-  final String estado; // Estado
-  final String status; // Situação atual (ex: ABERTO)
+  final String? cep; // CEP (pode vir nulo)
+  final String? municipio; // Município (pode vir nulo)
+  final String? estado; // Estado (pode vir nulo)
+  final String? status; // Situação atual (ex: ABERTO) (pode vir nulo)
 
   AgenteModel({
     required this.codigo,
     required this.cnpj,
     required this.razaoSocial,
-    required this.cep,
-    required this.municipio,
-    required this.estado,
-    required this.status,
+    this.cep,
+    this.municipio,
+    this.estado,
+    this.status,
   });
 
   // JSON -> Model
   factory AgenteModel.fromJson(Map<String, dynamic> json) {
     return AgenteModel(
-      codigo: json['codigo'],
-      cnpj: json['cnpj'],
-      razaoSocial: json['razaoSocial'],
-      cep: json['cep'],
-      municipio: json['municipio'],
-      estado: json['estado'],
-      status: json['status'],
+      codigo: json['codigo'] as int,
+      cnpj: _digitsOnly(json['cnpj'] as String?),
+      razaoSocial: (json['razaoSocial'] ?? '') as String,
+      cep: json['cep'] as String?,
+      municipio: json['municipio'] as String?,
+      estado: json['estado'] as String?,
+      status: json['status'] as String?,
     );
   }
 
@@ -46,13 +46,13 @@ class AgenteModel {
   // SQLite -> Model
   factory AgenteModel.fromMap(Map<String, dynamic> map) {
     return AgenteModel(
-      codigo: map['codigo'],
-      cnpj: map['cnpj'],
-      razaoSocial: map['razaoSocial'],
-      cep: map['cep'],
-      municipio: map['municipio'],
-      estado: map['estado'],
-      status: map['status'],
+      codigo: map['codigo'] as int,
+      cnpj: _digitsOnly(map['cnpj'] as String?),
+      razaoSocial: (map['razaoSocial'] ?? '') as String,
+      cep: map['cep'] as String?,
+      municipio: map['municipio'] as String?,
+      estado: map['estado'] as String?,
+      status: map['status'] as String?,
     );
   }
 
@@ -60,12 +60,18 @@ class AgenteModel {
   Map<String, dynamic> toMap() {
     return {
       'codigo': codigo,
-      'cnpj': cnpj,
+      'cnpj': _digitsOnly(cnpj),
       'razaoSocial': razaoSocial,
       'cep': cep,
       'municipio': municipio,
       'estado': estado,
       'status': status,
     };
+  }
+
+  // Normaliza mantendo apenas dígitos (remove pontos, barras e traços)
+  static String _digitsOnly(String? value) {
+    if (value == null) return '';
+    return value.replaceAll(RegExp(r'\D'), '');
   }
 }

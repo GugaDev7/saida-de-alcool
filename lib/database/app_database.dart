@@ -41,6 +41,11 @@ class AppDatabase {
           await AgenteDao.createTable(db);
           print('Tabela agentes criada');
         },
+        onOpen: (db) async {
+          // Ajustes de performance para muitas inserções
+          await db.execute('PRAGMA journal_mode=WAL');
+          await db.execute('PRAGMA synchronous=NORMAL');
+        },
       );
 
       print('Database inicializado com sucesso');

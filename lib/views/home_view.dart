@@ -333,27 +333,30 @@ class _HomeViewState extends State<HomeView> {
 
                 // Botão para consultar empresa
                 ElevatedButton.icon(
-                  onPressed: _consultarEmpresa,
+                  onPressed: () {
+                    _consultarEmpresa();
+                    _calcularPeso();
+                  },
                   icon: const Icon(Icons.search),
                   label: const Text("Consultar Empresa"),
                 ),
                 const SizedBox(height: 8),
 
                 // Botão para calcular peso
-                ElevatedButton.icon(
-                  onPressed: _calcularPeso,
-                  icon: const Icon(Icons.calculate),
-                  label: const Text("Calcular Peso (kg)"),
-                ),
-                const SizedBox(height: 8),
+                // ElevatedButton.icon(
+                //   onPressed: _calcularPeso,
+                //   icon: const Icon(Icons.calculate),
+                //   label: const Text("Calcular Peso (kg)"),
+                // ),
+                // const SizedBox(height: 8),
 
                 // Botão para testar banco
-                ElevatedButton.icon(
-                  onPressed: _testarBanco,
-                  icon: const Icon(Icons.storage),
-                  label: const Text("Testar Banco"),
-                ),
-                const SizedBox(height: 8),
+                // ElevatedButton.icon(
+                //   onPressed: _testarBanco,
+                //   icon: const Icon(Icons.storage),
+                //   label: const Text("Testar Banco"),
+                // ),
+                // const SizedBox(height: 8),
 
                 // Botão para sincronizar manualmente
                 ElevatedButton.icon(

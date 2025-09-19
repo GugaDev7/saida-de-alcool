@@ -13,22 +13,40 @@ class AgenteRepository {
     try {
       print('Iniciando sincronização de agentes...');
 
-      // 1. Buscar dados da API
-      print('Buscando dados da API...');
-      final List<Map<String, dynamic>> jsonList = await api.fetchAgentes();
-      print('Dados da API obtidos: ${jsonList.length} registros');
-
-      // 2. Limpar banco local antes de inserir novos dados
+      // 1. Limpar banco local antes de consultar a API
       print('Limpando banco local...');
       await dao.deleteAll();
       print('Banco local limpo');
 
-      // 3. Inserir cada agente no SQLite
-      print('Inserindo agentes no banco local...');
-      for (var json in jsonList) {
-        final agente = AgenteModel.fromJson(json);
-        await dao.insertAgente(agente);
+      // 2. Buscar dados da API
+      print('Buscando dados da API...');
+      final List<Map<String, dynamic>> jsonList = await api.fetchAgentes();
+      print('Dados da API obtidos: ${jsonList.length} registros');
+
+      // 3. Inserir em lotes com progresso para melhor performance e visibilidade
+      print('Inserindo agentes no banco local (lotes)...');
+      const int chunkSize = 2000;
+      int total = jsonList.length;
+      int inserted = 0;
+      final stopwatch = Stopwatch()..start();
+
+      for (int i = 0; i < total; i += chunkSize) {
+        final end = (i + chunkSize < total) ? i + chunkSize : total;
+        final chunk = jsonList.sublist(i, end);
+        final agentesChunk = chunk
+            .map((json) => AgenteModel.fromJson(json))
+            .toList(growable: false);
+        await dao.insertAgentesBatch(agentesChunk);
+        inserted = end;
+        if (inserted % (chunkSize * 5) == 0 || inserted == total) {
+          print('Inseridos: $inserted / $total');
+        }
       }
+
+      stopwatch.stop();
+      print(
+        'Inserção concluída: $inserted registros em ${stopwatch.elapsed.inSeconds}s',
+      );
       print('Sincronização concluída com sucesso');
     } catch (e) {
       print('Erro na sincronização: $e');
