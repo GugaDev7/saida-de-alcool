@@ -1,4 +1,3 @@
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'agente_dao.dart';
@@ -20,26 +19,20 @@ class AppDatabase {
 
   Future<Database> _initDatabase() async {
     try {
-      print('Inicializando database...');
-
       // Inicializa FFI quando rodando em desktop (Windows/Linux/macOS)
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
-      print('FFI inicializado');
 
       // Define o path do banco
       final dbPath = await getDatabasesPath();
       final path = join(dbPath, 'anp_app.db');
-      print('Path do banco: $path');
 
       // Abre/cria o banco
       final db = await openDatabase(
         path,
         version: 1,
         onCreate: (db, version) async {
-          print('Criando tabela agentes...');
           await AgenteDao.createTable(db);
-          print('Tabela agentes criada');
         },
         onOpen: (db) async {
           // Ajustes de performance para muitas inserções
@@ -48,10 +41,8 @@ class AppDatabase {
         },
       );
 
-      print('Database inicializado com sucesso');
       return db;
     } catch (e) {
-      print('Erro ao inicializar database: $e');
       rethrow;
     }
   }

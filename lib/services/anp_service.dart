@@ -28,12 +28,9 @@ class AnpService {
             },
           );
 
-      print('Resposta recebida: ${response.statusCode}');
-
       // Se a resposta for OK, converte o JSON em lista de mapas
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        print('Dados decodificados: ${data.length} registros');
         return data.map((item) => item as Map<String, dynamic>).toList();
       } else {
         // Caso dê erro, lança uma exceção
@@ -42,7 +39,6 @@ class AnpService {
         );
       }
     } catch (e) {
-      print('Erro na requisição da API: $e');
       rethrow;
     }
   }

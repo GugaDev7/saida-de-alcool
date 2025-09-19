@@ -3,7 +3,6 @@ import '../viewmodels/agente_viewmodel.dart';
 import '../database/app_database.dart';
 import '../repositories/agente_repository.dart';
 import '../services/anp_service.dart';
-import '../models/agente_model.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -31,68 +30,31 @@ class _HomeViewState extends State<HomeView> {
 
   Future<void> _initializeViewModel() async {
     try {
-      print('Iniciando inicialização do ViewModel...');
-
       final database = AppDatabase();
-      print('Database criado');
-
       final agenteDao = await database.getAgenteDao();
-      print('DAO obtido');
-
       final anpService = AnpService();
-      print('Service criado');
-
       final repository = AgenteRepository(api: anpService, dao: agenteDao);
-      print('Repository criado');
 
       _viewModel = AgenteViewModel(repository: repository);
-      print('ViewModel criado');
 
       // Adiciona listener para atualizar a UI quando o ViewModel mudar
       _viewModel!.addListener(_onViewModelChanged);
-      print('Listener adicionado');
 
       // Marca como inicializado primeiro, sem sincronizar
       if (mounted) {
         setState(() {
           _isInitializing = false;
         });
-        print('Estado atualizado - inicialização concluída');
       }
 
-      // Tenta sincronizar em background (sem bloquear a UI)
-      _sincronizarEmBackground();
+      // Não sincroniza automaticamente ao iniciar
     } catch (e) {
-      print('Erro ao inicializar ViewModel: $e');
-      print('Stack trace: ${StackTrace.current}');
       if (mounted) {
         setState(() {
           _isInitializing = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Erro ao inicializar aplicação: $e")),
-        );
-      }
-    }
-  }
-
-  /// Sincroniza dados em background sem bloquear a UI
-  Future<void> _sincronizarEmBackground() async {
-    try {
-      print('Iniciando sincronização em background...');
-      await _viewModel!.sincronizar();
-      print('Sincronização em background concluída');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Dados sincronizados com sucesso!")),
-        );
-      }
-    } catch (e) {
-      print('Erro na sincronização em background: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao sincronizar dados: $e")),
         );
       }
     }
@@ -168,73 +130,6 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  /// Testa se o banco está funcionando
-  Future<void> _testarBanco() async {
-    if (_viewModel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Aplicação ainda inicializando...")),
-      );
-      return;
-    }
-
-    try {
-      // Primeiro, adiciona dados de teste se não existirem
-      await _adicionarDadosTeste();
-
-      // Testa com um CNPJ conhecido
-      await _viewModel!.buscarAgente("53629021000137");
-
-      if (_viewModel!.agente != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Banco funcionando! Empresa encontrada."),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Banco funcionando, mas empresa não encontrada."),
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Erro no banco: $e")));
-    }
-  }
-
-  /// Adiciona dados de teste ao banco
-  Future<void> _adicionarDadosTeste() async {
-    try {
-      final database = AppDatabase();
-      final agenteDao = await database.getAgenteDao();
-
-      // Verifica se já existem dados
-      final agentes = await agenteDao.getAllAgentes();
-      if (agentes.isNotEmpty) {
-        print('Dados já existem no banco: ${agentes.length} registros');
-        return;
-      }
-
-      // Adiciona dados de teste
-      final agenteTeste = AgenteModel(
-        codigo: 1302227,
-        cnpj: "53629021000137",
-        razaoSocial: "JR DISTRIBUIDORA GAS LTDA",
-        cep: "75250000",
-        municipio: "SENADOR CANEDO",
-        estado: "GO",
-        status: "ABERTO",
-      );
-
-      await agenteDao.insertAgente(agenteTeste);
-      print('Dados de teste adicionados ao banco');
-    } catch (e) {
-      print('Erro ao adicionar dados de teste: $e');
-    }
-  }
-
   /// Sincroniza dados manualmente
   Future<void> _sincronizarManual() async {
     if (_viewModel == null) {
@@ -245,14 +140,14 @@ class _HomeViewState extends State<HomeView> {
     }
 
     try {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Sincronizando dados...")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Limpando e sincronizando dados...")),
+      );
 
       await _viewModel!.sincronizar();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Dados sincronizados com sucesso!")),
+        const SnackBar(content: Text("Banco limpo e dados sincronizados!")),
       );
     } catch (e) {
       ScaffoldMessenger.of(
@@ -342,27 +237,11 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 const SizedBox(height: 8),
 
-                // Botão para calcular peso
-                // ElevatedButton.icon(
-                //   onPressed: _calcularPeso,
-                //   icon: const Icon(Icons.calculate),
-                //   label: const Text("Calcular Peso (kg)"),
-                // ),
-                // const SizedBox(height: 8),
-
-                // Botão para testar banco
-                // ElevatedButton.icon(
-                //   onPressed: _testarBanco,
-                //   icon: const Icon(Icons.storage),
-                //   label: const Text("Testar Banco"),
-                // ),
-                // const SizedBox(height: 8),
-
-                // Botão para sincronizar manualmente
+                // Botão para limpar e sincronizar manualmente
                 ElevatedButton.icon(
                   onPressed: _sincronizarManual,
                   icon: const Icon(Icons.sync),
-                  label: const Text("Sincronizar Dados"),
+                  label: const Text("Limpar e Sincronizar"),
                 ),
                 const SizedBox(height: 16),
 

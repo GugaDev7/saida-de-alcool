@@ -13,7 +13,7 @@ Future<void> main() async {
   WindowOptions windowOptions = const WindowOptions(
     size: Size(800, 600), // tamanho fixo inicial (mockado)
     center: true, // centraliza na tela
-    title: "Consulta ANP", // título da janela
+    title: "Saída de Álcool", // título da janela
   );
 
   // Aplica as opções antes de exibir a janela
@@ -33,13 +33,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "Consulta ANP",
-      debugShowCheckedModeBanner: false, // remove a faixa "debug"
+      title: "Saída de Álcool",
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true, // ativa Material 3 (mais moderno)
-        colorSchemeSeed: Colors.blue, // cor principal do app
+        useMaterial3: true, // ativa Material 3
+        colorSchemeSeed: Colors.blue,
       ),
-      home: const HomeView(), // chama a tela principal
+      home: const HomeView(),
     );
   }
 }
