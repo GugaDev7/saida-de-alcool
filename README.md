@@ -81,4 +81,3 @@ O fluxo de dados segue um padrão unidirecional, garantindo previsibilidade e fa
     ```
 
 3.  **Distribua:** O aplicativo final estará em `build\windows\runner\Release\`. Compacte esta pasta inteira para distribuição.
-```
