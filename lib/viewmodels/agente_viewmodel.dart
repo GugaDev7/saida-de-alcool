@@ -44,4 +44,11 @@ class AgenteViewModel extends ChangeNotifier {
     massaKg = quantidadeM3 * densidade;
     notifyListeners();
   }
+
+  /// Limpa os resultados da consulta (agente e massa).
+  void limparResultados() {
+    agente = null;
+    massaKg = null;
+    notifyListeners();
+  }
 }

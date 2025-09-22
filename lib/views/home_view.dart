@@ -27,53 +27,83 @@ class _HomeViewState extends State<HomeView> {
     super.dispose();
   }
 
-  /// Busca empresa no banco pelo CNPJ informado no formulário.
-  Future<void> _consultarEmpresa() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+  /// Valida o formulário, executa a consulta do agente e o cálculo da massa.
+  ///
+  /// Após ler os dados, os campos de texto são limpos e o teclado é
+  /// recolhido para uma melhor experiência de usuário, exibindo apenas os
+  /// resultados da consulta.
+  Future<void> _processarConsulta() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
 
     final cnpj = _cnpjController.text.trim();
+    final quantidade =
+        double.tryParse(_quantidadeController.text.replaceAll(',', '.')) ?? 0;
+    final densidade =
+        double.tryParse(_densidadeController.text.replaceAll(',', '.')) ?? 0;
     final viewModel = context.read<AgenteViewModel>();
+
+    _cnpjController.clear();
+    _quantidadeController.clear();
+    _densidadeController.clear();
+    FocusScope.of(context).unfocus();
 
     try {
       await viewModel.buscarAgente(cnpj);
+      viewModel.calcularMassa(quantidade, densidade);
 
-      if (viewModel.agente == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Empresa não encontrada")));
+      if (mounted && viewModel.agente == null) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text("Empresa não encontrada")),
+          );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Erro ao consultar empresa: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text("Erro ao consultar empresa: $e")),
+          );
+      }
     }
   }
 
-  /// Calcula o peso (M³ × Densidade) a partir dos campos do formulário.
-  void _calcularPeso() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    final quantidade = double.tryParse(_quantidadeController.text) ?? 0;
-    final densidade = double.tryParse(_densidadeController.text) ?? 0;
-    context.read<AgenteViewModel>().calcularMassa(quantidade, densidade);
-  }
-
-  /// Inicia sincronização manual e exibe feedback na UI.
+  /// Inicia a sincronização manual dos dados da ANP.
+  ///
+  /// Antes de iniciar, limpa todos os campos de texto e os resultados
+  /// de consultas anteriores para fornecer um feedback claro de que
+  /// uma nova operação começou.
   Future<void> _sincronizarManual() async {
+    _cnpjController.clear();
+    _quantidadeController.clear();
+    _densidadeController.clear();
+    context.read<AgenteViewModel>().limparResultados();
+
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Limpando e sincronizando dados...")),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text("Limpando e sincronizando dados...")),
+        );
 
       await context.read<AgenteViewModel>().sincronizar();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Banco limpo e dados sincronizados!")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text("Banco limpo e dados sincronizados!")),
+          );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Erro ao sincronizar: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text("Erro ao sincronizar: $e")));
+      }
     }
   }
 
@@ -92,36 +122,29 @@ class _HomeViewState extends State<HomeView> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  "Consulta ANP",
+                  "SAÍDA DE ÁLCOOL",
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: Theme.of(context).textTheme.headlineLarge,
                 ),
                 const SizedBox(height: 20),
-
                 Form(
                   key: _formKey,
                   child: ConsultaFormWidget(
                     cnpjController: _cnpjController,
                     quantidadeController: _quantidadeController,
                     densidadeController: _densidadeController,
-                    onConsultar: () {
-                      _consultarEmpresa();
-                      _calcularPeso();
-                    },
+                    onConsultar: _processarConsulta,
                   ),
                 ),
                 const SizedBox(height: 8),
-
                 SyncButtonWidget(
                   onSincronizar: _sincronizarManual,
                   isLoading: viewModel.isLoading,
                   progressText: viewModel.syncProgress,
                 ),
                 const SizedBox(height: 8),
-
                 if (viewModel.agente != null)
                   AgenteInfoCardWidget(agente: viewModel.agente!),
-
                 if (viewModel.massaKg != null)
                   MassaInfoCardWidget(massaKg: viewModel.massaKg!),
               ],

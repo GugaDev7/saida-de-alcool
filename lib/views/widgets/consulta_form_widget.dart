@@ -27,7 +27,7 @@ class ConsultaFormWidget extends StatelessWidget {
         TextFormField(
           controller: cnpjController,
           decoration: const InputDecoration(
-            labelText: "CNPJ",
+            labelText: "CNPJ Empresa",
             border: OutlineInputBorder(),
           ),
           keyboardType: TextInputType.number,
@@ -43,7 +43,7 @@ class ConsultaFormWidget extends StatelessWidget {
         TextFormField(
           controller: quantidadeController,
           decoration: const InputDecoration(
-            labelText: "Quantidade (m³)",
+            labelText: "Quant. Nota",
             border: OutlineInputBorder(),
           ),
           keyboardType: TextInputType.number,
@@ -59,7 +59,7 @@ class ConsultaFormWidget extends StatelessWidget {
         TextFormField(
           controller: densidadeController,
           decoration: const InputDecoration(
-            labelText: "Densidade",
+            labelText: "Dens Álcool 20°",
             border: OutlineInputBorder(),
           ),
           keyboardType: TextInputType.number,

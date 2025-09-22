@@ -13,7 +13,7 @@ class MassaInfoCardWidget extends StatelessWidget {
       color: Colors.blue.shade50,
       child: ListTile(
         leading: const Icon(Icons.scale),
-        title: const Text("Peso Calculado"),
+        title: const Text("Peso Calculado (KG)"),
         subtitle: Text("${massaKg.toStringAsFixed(2)} kg"),
       ),
     );
