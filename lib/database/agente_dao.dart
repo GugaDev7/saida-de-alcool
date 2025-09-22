@@ -1,12 +1,14 @@
 import 'package:sqflite/sqflite.dart';
 import '../models/agente_model.dart';
 
+/// DAO responsável pelo acesso à tabela `agentes` no SQLite.
 class AgenteDao {
   final Database db;
 
+  /// Cria um [AgenteDao] usando a instância de [Database] informada.
   AgenteDao(this.db);
 
-  // Cria a tabela de agentes se não existir
+  /// Cria a tabela e índices necessários para `agentes` caso não existam.
   static Future<void> createTable(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS agentes (
@@ -19,22 +21,21 @@ class AgenteDao {
         status TEXT
       )
     ''');
-    // Índice para acelerar buscas por CNPJ
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_agentes_cnpj ON agentes(cnpj)',
     );
   }
 
-  // Insere ou atualiza um agente no banco
+  /// Insere ou atualiza um agente (upsert) na tabela `agentes`.
   Future<int> insertAgente(AgenteModel agente) async {
     return await db.insert(
       'agentes',
       agente.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace, // substitui se já existir
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  // Insere muitos agentes em lote (muito mais rápido que inserir um a um)
+  /// Insere vários agentes em transação usando `batch` para melhor desempenho.
   Future<void> insertAgentesBatch(List<AgenteModel> agentes) async {
     await db.transaction((txn) async {
       final batch = txn.batch();
@@ -49,7 +50,7 @@ class AgenteDao {
     });
   }
 
-  // Busca um agente pelo CNPJ
+  /// Retorna um agente pelo seu CNPJ (somente dígitos).
   Future<AgenteModel?> getAgenteByCnpj(String cnpj) async {
     try {
       final normalized = cnpj.replaceAll(RegExp(r'\D'), '');
@@ -64,13 +65,13 @@ class AgenteDao {
     }
   }
 
-  // Retorna todos os agentes
+  /// Retorna todos os agentes da tabela.
   Future<List<AgenteModel>> getAllAgentes() async {
     final result = await db.query('agentes');
     return result.map((map) => AgenteModel.fromMap(map)).toList();
   }
 
-  // Deleta todos os registros da tabela (útil para sincronização)
+  /// Remove todos os registros da tabela `agentes` (útil para sincronização).
   Future<int> deleteAll() async {
     return await db.delete('agentes');
   }

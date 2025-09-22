@@ -2,22 +2,26 @@ import '../database/agente_dao.dart';
 import '../models/agente_model.dart';
 import '../services/anp_service.dart';
 
+/// Camada de repositório que orquestra API e SQLite para agentes.
 class AgenteRepository {
   final AnpService api;
   final AgenteDao dao;
 
+  /// Cria um [AgenteRepository] com as dependências necessárias.
   AgenteRepository({required this.api, required this.dao});
 
-  // Sincroniza dados da API para o SQLite
-  Future<void> sincronizarAgentes() async {
+  /// Sincroniza os agentes da API com o banco local SQLite.
+  ///
+  /// Executa limpeza prévia, busca os dados e insere em lotes para
+  /// melhor desempenho e possibilidade de feedback de progresso.
+  Future<void> sincronizarAgentes({
+    void Function(int inserted, int total)? onProgress,
+  }) async {
     try {
-      // 1. Limpar banco local antes de consultar a API
       await dao.deleteAll();
 
-      // 2. Buscar dados da API
       final List<Map<String, dynamic>> jsonList = await api.fetchAgentes();
 
-      // 3. Inserir em lotes com progresso para melhor performance e visibilidade
       const int chunkSize = 2000;
       int total = jsonList.length;
       int inserted = 0;
@@ -31,7 +35,10 @@ class AgenteRepository {
             .toList(growable: false);
         await dao.insertAgentesBatch(agentesChunk);
         inserted = end;
-        if (inserted % (chunkSize * 5) == 0 || inserted == total) {}
+        if (onProgress != null &&
+            (inserted % (chunkSize) == 0 || inserted == total)) {
+          onProgress(inserted, total);
+        }
       }
 
       stopwatch.stop();
@@ -40,7 +47,7 @@ class AgenteRepository {
     }
   }
 
-  // Buscar agente por CNPJ
+  /// Busca um agente pelo CNPJ via DAO.
   Future<AgenteModel?> getAgenteByCnpj(String cnpj) async {
     return await dao.getAgenteByCnpj(cnpj);
   }

@@ -2,32 +2,33 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'agente_dao.dart';
 
+/// Responsável por inicializar e disponibilizar o banco SQLite (FFI desktop).
 class AppDatabase {
   static final AppDatabase _instance = AppDatabase._internal();
+
+  /// Retorna a instância singleton de [AppDatabase].
   factory AppDatabase() => _instance;
   AppDatabase._internal();
 
   static Database? _database;
 
+  /// Obtém (ou cria) a instância do [Database].
   Future<Database> get database async {
     if (_database != null) return _database!;
 
-    // Inicializa o banco
     _database = await _initDatabase();
     return _database!;
   }
 
+  /// Configura SQLite FFI, abre o banco e cria estruturas necessárias.
   Future<Database> _initDatabase() async {
     try {
-      // Inicializa FFI quando rodando em desktop (Windows/Linux/macOS)
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
 
-      // Define o path do banco
       final dbPath = await getDatabasesPath();
       final path = join(dbPath, 'anp_app.db');
 
-      // Abre/cria o banco
       final db = await openDatabase(
         path,
         version: 1,
@@ -35,7 +36,6 @@ class AppDatabase {
           await AgenteDao.createTable(db);
         },
         onOpen: (db) async {
-          // Ajustes de performance para muitas inserções
           await db.execute('PRAGMA journal_mode=WAL');
           await db.execute('PRAGMA synchronous=NORMAL');
         },
@@ -47,13 +47,13 @@ class AppDatabase {
     }
   }
 
-  // Obter DAO de agentes
+  /// Retorna uma instância de [AgenteDao] vinculada ao banco atual.
   Future<AgenteDao> getAgenteDao() async {
     final db = await database;
     return AgenteDao(db);
   }
 
-  // Fechar o banco
+  /// Fecha o banco atual e limpa o cache de instância.
   Future<void> close() async {
     final db = await database;
     await db.close();

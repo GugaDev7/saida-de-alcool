@@ -1,12 +1,14 @@
+/// Representa um agente (instalação) retornado pela ANP e armazenado localmente.
 class AgenteModel {
-  final int codigo; // Código de instalação (principal)
-  final String cnpj; // CNPJ da empresa (normalizado, somente dígitos)
-  final String razaoSocial; // Nome oficial da empresa
-  final String? cep; // CEP (pode vir nulo)
-  final String? municipio; // Município (pode vir nulo)
-  final String? estado; // Estado (pode vir nulo)
-  final String? status; // Situação atual (ex: ABERTO) (pode vir nulo)
+  final int codigo;
+  final String cnpj;
+  final String razaoSocial;
+  final String? cep;
+  final String? municipio;
+  final String? estado;
+  final String? status;
 
+  /// Cria uma instância de [AgenteModel].
   AgenteModel({
     required this.codigo,
     required this.cnpj,
@@ -17,7 +19,7 @@ class AgenteModel {
     this.status,
   });
 
-  // JSON -> Model
+  /// Constrói um [AgenteModel] a partir de um JSON da API (Map).
   factory AgenteModel.fromJson(Map<String, dynamic> json) {
     return AgenteModel(
       codigo: json['codigo'] as int,
@@ -30,7 +32,7 @@ class AgenteModel {
     );
   }
 
-  // Model -> JSON
+  /// Serializa este modelo para JSON (Map) compatível com a API.
   Map<String, dynamic> toJson() {
     return {
       'codigo': codigo,
@@ -43,7 +45,7 @@ class AgenteModel {
     };
   }
 
-  // SQLite -> Model
+  /// Constrói um [AgenteModel] a partir de um Map vindo do SQLite.
   factory AgenteModel.fromMap(Map<String, dynamic> map) {
     return AgenteModel(
       codigo: map['codigo'] as int,
@@ -56,7 +58,7 @@ class AgenteModel {
     );
   }
 
-  // Model -> SQLite
+  /// Serializa este modelo para um Map adequado ao SQLite.
   Map<String, dynamic> toMap() {
     return {
       'codigo': codigo,
@@ -69,7 +71,6 @@ class AgenteModel {
     };
   }
 
-  // Normaliza mantendo apenas dígitos (remove pontos, barras e traços)
   static String _digitsOnly(String? value) {
     if (value == null) return '';
     return value.replaceAll(RegExp(r'\D'), '');

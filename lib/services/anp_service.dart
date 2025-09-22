@@ -1,22 +1,22 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// Serviço HTTP para consumo da API pública da ANP de instalações abertas.
 class AnpService {
-  // URL da API da ANP para instalações abertas
   final String baseUrl;
 
-  // Construtor com valor padrão da API
+  /// Cria um [AnpService] opcionalmente com a [baseUrl] personalizada.
   AnpService({
     this.baseUrl =
         'https://dpp-isimp-consultas-api.anp.gov.br/instalacoes-abertas',
   });
 
-  // Método para buscar agentes da ANP
+  /// Busca a lista de agentes na API da ANP.
+  ///
+  /// Retorna uma lista de Maps (JSON bruto) para posterior mapeamento em modelos.
   Future<List<Map<String, dynamic>>> fetchAgentes() async {
     try {
       print('Fazendo requisição para: $baseUrl');
-
-      // Faz a requisição GET para a API com timeout de 30 segundos
       final response = await http
           .get(Uri.parse(baseUrl))
           .timeout(
@@ -27,13 +27,10 @@ class AnpService {
               );
             },
           );
-
-      // Se a resposta for OK, converte o JSON em lista de mapas
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((item) => item as Map<String, dynamic>).toList();
       } else {
-        // Caso dê erro, lança uma exceção
         throw Exception(
           'Falha ao carregar dados da ANP: ${response.statusCode}',
         );

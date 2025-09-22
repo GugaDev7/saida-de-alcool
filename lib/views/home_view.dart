@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../viewmodels/agente_viewmodel.dart';
-import '../database/app_database.dart';
-import '../repositories/agente_repository.dart';
-import '../services/anp_service.dart';
+import './widgets/consulta_form_widget.dart';
+import './widgets/sync_button_widget.dart';
+import './widgets/agente_info_card_widget.dart';
+import './widgets/massa_info_card_widget.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -12,91 +14,30 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-  // Controllers para capturar o texto dos campos
   final _cnpjController = TextEditingController();
   final _quantidadeController = TextEditingController();
   final _densidadeController = TextEditingController();
-
-  // ViewModel para gerenciar estado
-  AgenteViewModel? _viewModel;
-  bool _isInitializing = true;
-
-  /// Inicializa o ViewModel
-  @override
-  void initState() {
-    super.initState();
-    _initializeViewModel();
-  }
-
-  Future<void> _initializeViewModel() async {
-    try {
-      final database = AppDatabase();
-      final agenteDao = await database.getAgenteDao();
-      final anpService = AnpService();
-      final repository = AgenteRepository(api: anpService, dao: agenteDao);
-
-      _viewModel = AgenteViewModel(repository: repository);
-
-      // Adiciona listener para atualizar a UI quando o ViewModel mudar
-      _viewModel!.addListener(_onViewModelChanged);
-
-      // Marca como inicializado primeiro, sem sincronizar
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
-      }
-
-      // Não sincroniza automaticamente ao iniciar
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao inicializar aplicação: $e")),
-        );
-      }
-    }
-  }
-
-  void _onViewModelChanged() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
-    _viewModel?.removeListener(_onViewModelChanged);
     _cnpjController.dispose();
     _quantidadeController.dispose();
     _densidadeController.dispose();
     super.dispose();
   }
 
-  /// Busca empresa no banco pelo CNPJ
+  /// Busca empresa no banco pelo CNPJ informado no formulário.
   Future<void> _consultarEmpresa() async {
-    if (_viewModel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Aplicação ainda inicializando...")),
-      );
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final cnpj = _cnpjController.text.trim();
-
-    if (cnpj.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Digite um CNPJ válido")));
-      return;
-    }
+    final viewModel = context.read<AgenteViewModel>();
 
     try {
-      await _viewModel!.buscarAgente(cnpj);
+      await viewModel.buscarAgente(cnpj);
 
-      if (_viewModel!.agente == null) {
+      if (viewModel.agente == null) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Empresa não encontrada")));
@@ -108,43 +49,23 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  /// Calcula o peso (M³ × Densidade)
+  /// Calcula o peso (M³ × Densidade) a partir dos campos do formulário.
   void _calcularPeso() {
-    if (_viewModel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Aplicação ainda inicializando...")),
-      );
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final quantidade = double.tryParse(_quantidadeController.text);
-    final densidade = double.tryParse(_densidadeController.text);
-
-    if (quantidade != null && densidade != null) {
-      _viewModel!.calcularMassa(quantidade, densidade);
-    } else {
-      // Se valores forem inválidos, alerta o usuário
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Digite valores válidos")));
-    }
+    final quantidade = double.tryParse(_quantidadeController.text) ?? 0;
+    final densidade = double.tryParse(_densidadeController.text) ?? 0;
+    context.read<AgenteViewModel>().calcularMassa(quantidade, densidade);
   }
 
-  /// Sincroniza dados manualmente
+  /// Inicia sincronização manual e exibe feedback na UI.
   Future<void> _sincronizarManual() async {
-    if (_viewModel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Aplicação ainda inicializando...")),
-      );
-      return;
-    }
-
     try {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Limpando e sincronizando dados...")),
       );
 
-      await _viewModel!.sincronizar();
+      await context.read<AgenteViewModel>().sincronizar();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Banco limpo e dados sincronizados!")),
@@ -158,34 +79,18 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    // Mostra loading enquanto inicializa
-    if (_isInitializing || _viewModel == null) {
-      return const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text("Inicializando aplicação..."),
-            ],
-          ),
-        ),
-      );
-    }
+    final viewModel = context.watch<AgenteViewModel>();
 
     return Scaffold(
-      // Centraliza o conteúdo no meio da janela (desktop style)
       body: Center(
         child: SizedBox(
-          width: 500, // largura fixa para o formulário
+          width: 500,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // só ocupa o necessário
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Título da tela
                 Text(
                   "Consulta ANP",
                   textAlign: TextAlign.center,
@@ -193,83 +98,32 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 const SizedBox(height: 20),
 
-                // Campo de entrada do CNPJ
-                TextField(
-                  controller: _cnpjController,
-                  decoration: const InputDecoration(
-                    labelText: "CNPJ",
-                    border: OutlineInputBorder(),
+                Form(
+                  key: _formKey,
+                  child: ConsultaFormWidget(
+                    cnpjController: _cnpjController,
+                    quantidadeController: _quantidadeController,
+                    densidadeController: _densidadeController,
+                    onConsultar: () {
+                      _consultarEmpresa();
+                      _calcularPeso();
+                    },
                   ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-
-                // Campo de quantidade em m³
-                TextField(
-                  controller: _quantidadeController,
-                  decoration: const InputDecoration(
-                    labelText: "Quantidade (m³)",
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-
-                // Campo de densidade
-                TextField(
-                  controller: _densidadeController,
-                  decoration: const InputDecoration(
-                    labelText: "Densidade",
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 16),
-
-                // Botão para consultar empresa
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _consultarEmpresa();
-                    _calcularPeso();
-                  },
-                  icon: const Icon(Icons.search),
-                  label: const Text("Consultar Empresa"),
                 ),
                 const SizedBox(height: 8),
 
-                // Botão para limpar e sincronizar manualmente
-                ElevatedButton.icon(
-                  onPressed: _sincronizarManual,
-                  icon: const Icon(Icons.sync),
-                  label: const Text("Limpar e Sincronizar"),
+                SyncButtonWidget(
+                  onSincronizar: _sincronizarManual,
+                  isLoading: viewModel.isLoading,
+                  progressText: viewModel.syncProgress,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
 
-                // Card mostrando dados da empresa (se achou)
-                if (_viewModel!.agente != null)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.factory),
-                      title: Text(_viewModel!.agente!.razaoSocial),
-                      subtitle: Text(
-                        "Cód. Instalação: ${_viewModel!.agente!.codigo}\n"
-                        "Município: ${_viewModel!.agente!.municipio} - ${_viewModel!.agente!.estado}",
-                      ),
-                    ),
-                  ),
+                if (viewModel.agente != null)
+                  AgenteInfoCardWidget(agente: viewModel.agente!),
 
-                // Card mostrando o peso calculado
-                if (_viewModel!.massaKg != null)
-                  Card(
-                    color: Colors.blue.shade50,
-                    child: ListTile(
-                      leading: const Icon(Icons.scale),
-                      title: const Text("Peso Calculado"),
-                      subtitle: Text(
-                        "${_viewModel!.massaKg!.toStringAsFixed(2)} kg",
-                      ),
-                    ),
-                  ),
+                if (viewModel.massaKg != null)
+                  MassaInfoCardWidget(massaKg: viewModel.massaKg!),
               ],
             ),
           ),

@@ -1,45 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'views/home_view.dart';
+import 'database/app_database.dart';
+import 'repositories/agente_repository.dart';
+import 'services/anp_service.dart';
+import 'viewmodels/agente_viewmodel.dart';
 
 Future<void> main() async {
-  // Garante que o Flutter esteja inicializado antes de usar plugins nativos
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa o gerenciador de janelas do desktop
   await windowManager.ensureInitialized();
 
-  // Define as opções iniciais da janela
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(800, 600), // tamanho fixo inicial (mockado)
-    center: true, // centraliza na tela
-    title: "Saída de Álcool", // título da janela
+    size: Size(800, 600),
+    center: true,
+    title: "Saída de Álcool",
   );
 
-  // Aplica as opções antes de exibir a janela
   windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show(); // mostra a janela
-    await windowManager.focus(); // dá foco inicial
-    await windowManager.setResizable(false); // bloqueia redimensionamento
+    await windowManager.show();
+    await windowManager.focus();
+    await windowManager.setResizable(false);
   });
 
-  // Roda o app
-  runApp(const MyApp());
+  final database = AppDatabase();
+  final agenteDao = await database.getAgenteDao();
+  final anpService = AnpService();
+  final repository = AgenteRepository(api: anpService, dao: agenteDao);
+
+  runApp(MyApp(repository: repository));
 }
 
+/// Raiz do aplicativo com injeção de dependências básicas e tema.
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AgenteRepository repository;
+
+  /// Recebe o [repository] que será injetado no [AgenteViewModel].
+  const MyApp({super.key, required this.repository});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "Saída de Álcool",
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true, // ativa Material 3
-        colorSchemeSeed: Colors.blue,
+    return ChangeNotifierProvider<AgenteViewModel>(
+      create: (_) => AgenteViewModel(repository: repository),
+      child: MaterialApp(
+        title: "Saída de Álcool",
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
+        home: const HomeView(),
       ),
-      home: const HomeView(),
     );
   }
 }
